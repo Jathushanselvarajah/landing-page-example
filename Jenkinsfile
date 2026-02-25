@@ -8,13 +8,23 @@ pipeline {
         }
         stage('Build') {
             steps {
-                echo 'Vérification des fichiers...'
+                echo 'Fichiers récupérés :'
                 sh 'ls -la'
             }
         }
-        stage('Deploy') {
+        stage('Deploy to Azure') {
             steps {
-                sh 'scp -o StrictHostKeyChecking=no -i /var/jenkins_home/.ssh/id_ed25519 index.html jathus92@ssh-jathus92.alwaysdata.net:www/'
+                sh '''
+                    ssh -o StrictHostKeyChecking=no -i /var/jenkins_home/.ssh/id_ed25519 azureuser@51.120.126.140 << 'EOF'
+                    cd ~/landing-page-example
+                    git pull origin main
+                    docker build -t landing-page .
+                    docker stop landing || true
+                    docker rm landing || true
+                    docker run -d --name landing -p 80:80 landing-page
+                    echo "Déploiement terminé !"
+EOF
+                '''
             }
         }
     }
